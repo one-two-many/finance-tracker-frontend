@@ -295,7 +295,6 @@ export default function SplitwiseSplitModal({
     const numParticipants = participantIds.size + 1 // +1 for current user
 
     return [...participantIds].map(id => {
-      const p = allParticipantsMap.get(id)!
       if (splitType === 'equal') return { user_id: id, owed_share: totalAmount / numParticipants, paid_share: 0 }
       if (splitType === 'exact') return { user_id: id, owed_share: customShares[id] || 0, paid_share: 0 }
       return { user_id: id, owed_share: totalAmount * ((customShares[id] || 0) / 100), paid_share: 0 }

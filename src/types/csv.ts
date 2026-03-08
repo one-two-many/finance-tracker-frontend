@@ -59,7 +59,7 @@ export interface ImportConfirmRequest {
   file_content: string
   account_id: number
   parser_name: string
-  category_mappings?: Record<string, number>
+  category_mappings?: Record<string, number | null>
   type_overrides?: Record<string, string>
   skip_duplicates?: boolean
   filename?: string

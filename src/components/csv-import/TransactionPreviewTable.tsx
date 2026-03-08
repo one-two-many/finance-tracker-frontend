@@ -10,7 +10,7 @@ interface TransactionPreviewTableProps {
   typeOverrides: Record<string, string>
   onCategoryChange: (description: string, categoryId: number | null) => void
   onTypeChange: (description: string, type: string) => void
-  onBulkAssign: (pattern: string, categoryId: number | null) => void
+  onBulkAssign?: (pattern: string, categoryId: number | null) => void
   onRemoveTransactions?: (indices: number[]) => void
   onDescriptionChange: (globalIndex: number, oldDescription: string, newDescription: string) => void
 }
@@ -22,7 +22,7 @@ export default function TransactionPreviewTable({
   typeOverrides,
   onCategoryChange,
   onTypeChange,
-  onBulkAssign,
+  onBulkAssign: _onBulkAssign,
   onRemoveTransactions,
   onDescriptionChange,
 }: TransactionPreviewTableProps) {
