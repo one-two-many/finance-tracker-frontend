@@ -54,11 +54,9 @@ function StarButton({ active, onClick }: { active: boolean; onClick: (e: React.M
     <button
       onClick={onClick}
       title={active ? 'Remove from favourites' : 'Add to favourites'}
-      style={{
-        background: 'none', border: 'none', cursor: 'pointer',
-        padding: '2px 4px', fontSize: '16px', lineHeight: 1,
-        color: active ? '#f5a623' : '#ccc', flexShrink: 0, transition: 'color 0.15s'
-      }}
+      className={`bg-transparent border-none cursor-pointer px-1 py-0.5 text-base leading-none flex-shrink-0 transition-colors duration-150 ${
+        active ? 'text-amber-400' : 'text-muted-foreground hover:text-amber-400/60'
+      }`}
     >
       {active ? '★' : '☆'}
     </button>
@@ -72,32 +70,24 @@ function AccordionSection({
   title: string; badge?: number; isOpen: boolean; onToggle: () => void; children: React.ReactNode
 }) {
   return (
-    <div style={{ border: '1px solid #ddd', borderRadius: '6px', marginBottom: '10px' }}>
+    <div className="border border-border rounded-lg mb-2.5">
       <button
         onClick={onToggle}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', padding: '12px 16px',
-          backgroundColor: isOpen ? '#f0f4ff' : '#f8f9fa',
-          border: 'none', borderRadius: isOpen ? '6px 6px 0 0' : '6px',
-          cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: '#333',
-          transition: 'background-color 0.15s'
-        }}
+        className={`w-full flex items-center justify-between px-4 py-3 border-none cursor-pointer text-sm font-semibold text-foreground transition-colors duration-150 ${
+          isOpen ? 'bg-secondary/80 rounded-t-lg' : 'bg-secondary/40 rounded-lg'
+        }`}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span className="flex items-center gap-2">
           {title}
           {badge !== undefined && badge > 0 && (
-            <span style={{
-              backgroundColor: '#5C4EE5', color: 'white',
-              borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: 700
-            }}>
+            <span className="bg-primary text-primary-foreground rounded-full px-2 py-px text-[11px] font-bold">
               {badge}
             </span>
           )}
         </span>
-        <span style={{ fontSize: '12px', color: '#666' }}>{isOpen ? '▲' : '▼'}</span>
+        <span className="text-xs text-muted-foreground">{isOpen ? '▲' : '▼'}</span>
       </button>
-      {isOpen && <div style={{ borderTop: '1px solid #ddd' }}>{children}</div>}
+      {isOpen && <div className="border-t border-border">{children}</div>}
     </div>
   )
 }
@@ -115,29 +105,24 @@ function ParticipantRow({
   const displayName = [participant.first_name, participant.last_name].filter(Boolean).join(' ')
   return (
     <div
-      style={{
-        padding: '10px 16px', borderBottom: '1px solid #eee',
-        display: 'flex', alignItems: 'center', gap: '10px',
-        backgroundColor: isSelected ? '#f0f8ff' : 'white',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.4 : 1,
-        transition: 'opacity 0.15s'
-      }}
+      className={`px-4 py-2.5 border-b border-border flex items-center gap-2.5 transition-all duration-150 ${
+        isSelected ? 'bg-primary/5' : 'bg-transparent'
+      } ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-secondary/30'}`}
       onClick={disabled ? undefined : onToggle}
     >
       <input
         type="checkbox" checked={isSelected} onChange={onToggle}
         onClick={(e) => e.stopPropagation()}
         disabled={disabled}
-        style={{ cursor: disabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+        className={`flex-shrink-0 accent-primary ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
       />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 500, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {isFavourite && <span style={{ color: '#f5a623', fontSize: '13px' }}>★</span>}
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm text-foreground flex items-center gap-1">
+          {isFavourite && <span className="text-amber-400 text-[13px]">★</span>}
           {displayName}
         </div>
         {participant.email && (
-          <div style={{ fontSize: '12px', color: '#888', marginTop: '1px' }}>{participant.email}</div>
+          <div className="text-xs text-muted-foreground mt-px">{participant.email}</div>
         )}
       </div>
       {splitType !== 'equal' && isSelected && (
@@ -147,10 +132,7 @@ function ParticipantRow({
           value={customShare ?? ''}
           onChange={(e) => onShareChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          style={{
-            width: '110px', padding: '6px 8px', border: '1px solid #ddd',
-            borderRadius: '4px', fontSize: '13px', flexShrink: 0
-          }}
+          className="w-28 px-2 py-1.5 border border-border bg-secondary rounded-lg text-sm text-foreground flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-ring font-mono"
         />
       )}
       <StarButton active={isFavourite} onClick={onFavToggle} />
@@ -162,20 +144,12 @@ function ParticipantRow({
 function GroupMemberInfoRow({ member }: { member: SplitwiseGroupMember }) {
   const displayName = [member.first_name, member.last_name].filter(Boolean).join(' ')
   return (
-    <div style={{
-      padding: '8px 16px 8px 44px',
-      borderBottom: '1px solid #f0f0f0',
-      display: 'flex', alignItems: 'center', gap: '8px',
-      backgroundColor: '#fafeff'
-    }}>
-      <div style={{
-        width: '6px', height: '6px', borderRadius: '50%',
-        backgroundColor: '#5C4EE5', flexShrink: 0
-      }} />
+    <div className="py-2 px-4 pl-11 border-b border-border/50 flex items-center gap-2 bg-secondary/20">
+      <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
       <div>
-        <span style={{ fontSize: '13px', fontWeight: 500 }}>{displayName}</span>
+        <span className="text-[13px] font-medium text-foreground">{displayName}</span>
         {member.email && (
-          <span style={{ fontSize: '12px', color: '#aaa', marginLeft: '8px' }}>{member.email}</span>
+          <span className="text-xs text-muted-foreground ml-2">{member.email}</span>
         )}
       </div>
     </div>
@@ -366,40 +340,38 @@ export default function SplitwiseSplitModal({
 
   return (
     <div
-      style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-      }}
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        style={{
-          backgroundColor: 'white', borderRadius: '8px',
-          width: '90%', maxWidth: '600px', maxHeight: '85vh', overflow: 'auto', padding: '24px'
-        }}
+        className="bg-card border border-border rounded-2xl w-full max-w-[600px] max-h-[85vh] overflow-auto p-6 shadow-2xl animate-fade-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 style={{ marginTop: 0, marginBottom: '20px' }}>Split with Splitwise</h2>
+        <h3 className="font-display text-lg font-semibold text-foreground mb-5">Split with Splitwise</h3>
 
         {/* Summary */}
-        <div style={{
-          marginBottom: '20px', padding: '15px',
-          backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6'
-        }}>
-          <div><strong>Selected Transactions:</strong> {selectedTransactions.length}</div>
-          <div><strong>Total Amount:</strong> ${totalAmount.toFixed(2)}</div>
+        <div className="mb-5 p-4 bg-secondary/50 rounded-xl border border-border">
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Selected Transactions:</span>{' '}
+            <span className="font-mono">{selectedTransactions.length}</span>
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">
+            <span className="font-medium text-foreground">Total Amount:</span>{' '}
+            <span className="font-mono font-semibold text-destructive">
+              −${totalAmount.toFixed(2)}
+            </span>
+          </div>
         </div>
 
         {/* Split Type */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+        <div className="mb-5 space-y-1.5">
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
             Split Type
           </label>
           <select
             value={splitType}
             onChange={(e) => handleSplitTypeChange(e.target.value as SplitType)}
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px' }}
+            className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="equal">Split Equally</option>
             <option value="exact">Custom Amount (exact per person)</option>
@@ -408,14 +380,17 @@ export default function SplitwiseSplitModal({
         </div>
 
         {/* Participants header */}
-        <div style={{ marginBottom: '10px', fontWeight: 'bold', fontSize: '14px' }}>
+        <div className="mb-2.5 text-xs uppercase tracking-widest text-muted-foreground font-medium">
           Select Participants{totalResolved > 0 && (
-            <span style={{ fontWeight: 400, color: '#666' }}> ({totalResolved} selected)</span>
+            <span className="normal-case tracking-normal text-muted-foreground/70"> ({totalResolved} selected)</span>
           )}
         </div>
 
         {loading && friends.length === 0 && groups.length === 0 ? (
-          <p style={{ textAlign: 'center', padding: '20px', color: '#666' }}>Loading...</p>
+          <div className="flex items-center gap-3 text-muted-foreground py-5 justify-center">
+            <div className="w-5 h-5 border-2 border-border border-t-primary rounded-full animate-spin" />
+            <span className="text-sm">Loading…</span>
+          </div>
         ) : (
           <>
             {/* ── Groups accordion ── */}
@@ -426,7 +401,7 @@ export default function SplitwiseSplitModal({
               onToggle={() => setGroupsOpen(o => !o)}
             >
               {sortedGroups.length === 0 ? (
-                <p style={{ padding: '16px', color: '#888', margin: 0, fontSize: '14px' }}>
+                <p className="px-4 py-4 text-muted-foreground text-sm m-0">
                   No Splitwise groups found.
                 </p>
               ) : (
@@ -438,15 +413,9 @@ export default function SplitwiseSplitModal({
                     <div key={group.id}>
                       {/* Group header row */}
                       <div
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: isGroupSelected ? '#eef2ff' : (isFav ? '#fffbec' : '#f5f5f5'),
-                          borderBottom: '1px solid #eee',
-                          display: 'flex', alignItems: 'center', gap: '10px',
-                          cursor: isDisabled ? 'not-allowed' : (splitType === 'equal' ? 'pointer' : 'default'),
-                          opacity: isDisabled ? 0.4 : 1,
-                          transition: 'opacity 0.15s'
-                        }}
+                        className={`px-4 py-2.5 border-b border-border flex items-center gap-2.5 transition-all duration-150 ${
+                          isGroupSelected ? 'bg-primary/10' : (isFav ? 'bg-amber-400/5' : 'bg-secondary/30')
+                        } ${isDisabled ? 'cursor-not-allowed opacity-40' : (splitType === 'equal' ? 'cursor-pointer hover:bg-secondary/50' : '')}`}
                         onClick={() => !isDisabled && splitType === 'equal' && toggleGroup(group.id)}
                       >
                         {splitType === 'equal' ? (
@@ -456,21 +425,21 @@ export default function SplitwiseSplitModal({
                             onChange={() => toggleGroup(group.id)}
                             onClick={(e) => e.stopPropagation()}
                             disabled={isDisabled}
-                            style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+                            className={`flex-shrink-0 accent-primary ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                           />
                         ) : (
                           // Decorative indent spacer for non-equal modes
-                          <div style={{ width: '16px', flexShrink: 0 }} />
+                          <div className="w-4 flex-shrink-0" />
                         )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#444', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            {isFav && <span style={{ color: '#f5a623' }}>★</span>}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
+                            {isFav && <span className="text-amber-400">★</span>}
                             {group.name}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#888' }}>
+                          <span className="text-xs text-muted-foreground block">
                             {group.members.length} member{group.members.length !== 1 ? 's' : ''}
                             {splitType === 'equal' && isGroupSelected && (
-                              <span style={{ color: '#5C4EE5', marginLeft: '6px', fontWeight: 600 }}>
+                              <span className="text-primary ml-1.5 font-semibold">
                                 · all included
                               </span>
                             )}
@@ -515,7 +484,7 @@ export default function SplitwiseSplitModal({
               onToggle={() => setFriendsOpen(o => !o)}
             >
               {sortedFriends.length === 0 ? (
-                <p style={{ padding: '16px', color: '#888', margin: 0, fontSize: '14px' }}>
+                <p className="px-4 py-4 text-muted-foreground text-sm m-0">
                   No Splitwise friends found.
                 </p>
               ) : (
@@ -539,33 +508,27 @@ export default function SplitwiseSplitModal({
         )}
 
         {fetchError && (
-          <div style={{
-            backgroundColor: '#f8d7da', color: '#721c24', padding: '12px',
-            borderRadius: '4px', marginBottom: '15px', border: '1px solid #f5c6cb', fontSize: '14px'
-          }}>
+          <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-sm text-destructive mb-4">
             {fetchError}
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
+        <div className="flex gap-3 justify-end pt-1">
           <button
             onClick={onClose} disabled={loading}
-            style={{
-              padding: '10px 20px', backgroundColor: '#6c757d', color: 'white',
-              border: 'none', borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer', fontSize: '14px'
-            }}
+            className={`px-5 py-2 bg-secondary text-foreground border border-border rounded-lg text-sm font-medium transition-colors duration-150 ${
+              loading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-secondary/80'
+            }`}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit} disabled={loading || !canSubmit}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: loading || !canSubmit ? '#adb5bd' : '#5C4EE5',
-              color: 'white', border: 'none', borderRadius: '4px',
-              cursor: loading || !canSubmit ? 'not-allowed' : 'pointer', fontSize: '14px'
-            }}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 ${
+              loading || !canSubmit
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90'
+            }`}
           >
             {loading ? 'Creating Expenses...' : 'Split Expenses'}
           </button>
