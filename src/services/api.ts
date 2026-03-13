@@ -81,6 +81,8 @@ export interface Category {
   name: string;
   color: string;
   icon: string;
+  is_global: boolean;
+  user_id: number;
 }
 
 // Import new types
@@ -196,6 +198,7 @@ export interface CategoryCreate {
   name: string;
   color?: string;
   icon?: string;
+  is_global?: boolean;
 }
 
 export interface CategoryUpdate {
