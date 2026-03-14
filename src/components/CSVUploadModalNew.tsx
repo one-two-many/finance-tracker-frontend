@@ -63,12 +63,13 @@ export default function CSVUploadModalNew({ isOpen, onClose, onSuccess }: CSVUpl
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.name.endsWith('.csv') && !file.name.endsWith('.pdf')) {
+    const nameLower = file.name.toLowerCase()
+    if (!nameLower.endsWith('.csv') && !nameLower.endsWith('.pdf')) {
       setError('Please select a CSV or PDF file'); return
     }
     setSelectedFile(file); setError('')
     const reader = new FileReader()
-    if (file.name.endsWith('.csv')) {
+    if (nameLower.endsWith('.csv')) {
       reader.onload = (ev) => { if (ev.target?.result) setFileContent(ev.target.result as string) }
       reader.readAsText(file)
     } else {
