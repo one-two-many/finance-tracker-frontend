@@ -415,7 +415,7 @@ export default function TransactionsPage() {
                             >
                               <option value="">— None —</option>
                               {categories.map((cat) => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                <option key={cat.id} value={cat.id}>{cat.name}{cat.is_global ? ' (Global)' : ''}</option>
                               ))}
                             </select>
                             {savingCategory === txn.id && (

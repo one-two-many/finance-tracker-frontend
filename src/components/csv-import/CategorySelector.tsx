@@ -107,6 +107,9 @@ export default function CategorySelector({
                     style={{ backgroundColor: category.color }}
                   />
                   {category.name}
+                  {category.is_global && (
+                    <span className="text-[10px] text-muted-foreground ml-1">· Global</span>
+                  )}
                 </div>
               ))}
               {filteredCategories.length === 0 && (

@@ -13,10 +13,12 @@ import {
   type Category,
   type CategoryCreate,
 } from '../services/api'
+import { useAuth } from '../lib/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Plus, Pencil, Trash2, X, Check, Tag } from 'lucide-react'
+import { Badge } from '../components/ui/badge'
+import { Plus, Pencil, Trash2, X, Check, Tag, Globe } from 'lucide-react'
 
 const COLOR_PALETTE = [
   '#ef4444', '#f97316', '#f59e0b', '#10b981', '#14b8a6',
@@ -31,6 +33,7 @@ const PATTERN_TYPE_STYLES: Record<string, string> = {
 }
 
 export default function CategoryRulesPage() {
+  const { user } = useAuth()
   const [rules, setRules] = useState<CategoryRule[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,6 +54,7 @@ export default function CategoryRulesPage() {
     name: '',
     color: '#6366f1',
     icon: '💰',
+    is_global: false,
   })
 
   const loadData = async () => {
@@ -101,7 +105,7 @@ export default function CategoryRulesPage() {
   }
 
   const resetCategoryForm = () => {
-    setCategoryFormData({ name: '', color: '#6366f1', icon: '💰' })
+    setCategoryFormData({ name: '', color: '#6366f1', icon: '💰', is_global: false })
     setEditingCategory(null)
   }
 
@@ -165,26 +169,35 @@ export default function CategoryRulesPage() {
                 >
                   <span className="text-xl shrink-0">{cat.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{cat.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-foreground truncate">{cat.name}</p>
+                      {cat.is_global && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 shrink-0">
+                          <Globe className="w-2.5 h-2.5" /> Global
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 mt-1">
                       <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: cat.color }} />
                       <span className="text-[10px] font-mono text-muted-foreground">{cat.color}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      onClick={() => { setEditingCategory(cat); setCategoryFormData({ name: cat.name, color: cat.color, icon: cat.icon }); setIsCategoryModalOpen(true) }}
-                      className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCategory(cat.id)}
-                      className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
+                  {cat.user_id === user?.id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <button
+                        onClick={() => { setEditingCategory(cat); setCategoryFormData({ name: cat.name, color: cat.color, icon: cat.icon }); setIsCategoryModalOpen(true) }}
+                        className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -371,6 +384,25 @@ export default function CategoryRulesPage() {
                   className="w-full h-8 rounded-lg border border-border cursor-pointer bg-transparent"
                 />
               </div>
+              {/* Global toggle */}
+              {!editingCategory ? (
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={categoryFormData.is_global || false}
+                    onChange={(e) => setCategoryFormData({ ...categoryFormData, is_global: e.target.checked })}
+                    className="w-4 h-4 rounded border-border bg-secondary accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Available to all users</span>
+                </label>
+              ) : editingCategory.is_global ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="gap-1">
+                    <Globe className="w-3 h-3" /> Global category
+                  </Badge>
+                </div>
+              ) : null}
+
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Icon</label>
                 <div className="flex gap-2 flex-wrap">
