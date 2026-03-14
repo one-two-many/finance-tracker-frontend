@@ -2,9 +2,8 @@ name: Build and Push Frontend Docker Image
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    branches:
+      - master
 
 env:
   REGISTRY: ghcr.io
