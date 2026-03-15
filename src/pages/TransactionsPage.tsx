@@ -5,6 +5,7 @@ import {
   getCategories,
   deleteTransaction,
   updateTransactionCategory,
+  updateTransactionType,
   getSplitwiseCredentials,
   type Transaction,
   type Account,
@@ -28,6 +29,7 @@ import {
   Hash,
   Filter,
 } from 'lucide-react'
+import MultiSelectFilter from '../components/MultiSelectFilter'
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -39,8 +41,9 @@ export default function TransactionsPage() {
   // Filter states
   const currentMonth = new Date().toISOString().slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonth)
-  const [selectedAccount, setSelectedAccount] = useState<number | undefined>(undefined)
-  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined)
+  const [selectedAccounts, setSelectedAccounts] = useState<number[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([])
+
   const [selectedType, setSelectedType] = useState<'income' | 'expense' | 'transfer' | undefined>(undefined)
 
   // Delete states
@@ -60,6 +63,10 @@ export default function TransactionsPage() {
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
   const [savingCategory, setSavingCategory] = useState<number | null>(null)
 
+  // Inline type editing
+  const [editingTypeId, setEditingTypeId] = useState<number | null>(null)
+  const [savingType, setSavingType] = useState<number | null>(null)
+
   const { toasts, showToast, dismissToast } = useToast()
 
   const loadTransactions = useCallback(async () => {
@@ -74,8 +81,8 @@ export default function TransactionsPage() {
         filters.start_date = startDate.toISOString().split('T')[0]
         filters.end_date = endDate.toISOString().split('T')[0]
       }
-      if (selectedAccount) filters.account_id = selectedAccount
-      if (selectedCategory) filters.category_id = selectedCategory
+      if (selectedAccounts.length > 0) filters.account_ids = selectedAccounts
+      if (selectedCategories.length > 0) filters.category_ids = selectedCategories
       if (selectedType) filters.transaction_type = selectedType
       const data = await getTransactions(filters)
       setTransactions(data)
@@ -84,7 +91,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedMonth, selectedAccount, selectedCategory, selectedType])
+  }, [selectedMonth, selectedAccounts, selectedCategories, selectedType])
 
   useEffect(() => {
     Promise.all([getAccounts(), getCategories()]).then(([accts, cats]) => {
@@ -116,6 +123,24 @@ export default function TransactionsPage() {
       showToast('Failed to update category', 'error')
     } finally {
       setSavingCategory(null)
+    }
+  }
+
+  const handleTypeChange = async (txnId: number, newType: 'income' | 'expense' | 'transfer') => {
+    setSavingType(txnId)
+    try {
+      const updated = await updateTransactionType(txnId, newType)
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.id === txnId ? { ...t, transaction_type: updated.transaction_type } : t
+        )
+      )
+      setEditingTypeId(null)
+      showToast('Transaction type updated', 'success')
+    } catch {
+      showToast('Failed to update transaction type', 'error')
+    } finally {
+      setSavingType(null)
     }
   }
 
@@ -160,8 +185,8 @@ export default function TransactionsPage() {
 
   const clearFilters = () => {
     setSelectedMonth(currentMonth)
-    setSelectedAccount(undefined)
-    setSelectedCategory(undefined)
+    setSelectedAccounts([])
+    setSelectedCategories([])
     setSelectedType(undefined)
   }
 
@@ -240,7 +265,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="animate-fade-up animate-fade-up-2">
+      <Card className="animate-fade-up animate-fade-up-2 relative z-10 overflow-visible">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
@@ -260,25 +285,21 @@ export default function TransactionsPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Account</label>
-              <select
-                value={selectedAccount ?? ''}
-                onChange={(e) => setSelectedAccount(e.target.value ? parseInt(e.target.value) : undefined)}
-                className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">All Accounts</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+              <MultiSelectFilter
+                options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+                selected={selectedAccounts}
+                onChange={setSelectedAccounts}
+                placeholder="All Accounts"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Category</label>
-              <select
-                value={selectedCategory ?? ''}
-                onChange={(e) => setSelectedCategory(e.target.value ? parseInt(e.target.value) : undefined)}
-                className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">All Categories</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <MultiSelectFilter
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                selected={selectedCategories}
+                onChange={setSelectedCategories}
+                placeholder="All Categories"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Type</label>
@@ -448,9 +469,34 @@ export default function TransactionsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <Badge variant={typeBadgeVariant(txn.transaction_type) as 'profit' | 'loss' | 'transfer'}>
-                          {txn.transaction_type}
-                        </Badge>
+                        {editingTypeId === txn.id ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <select
+                              autoFocus
+                              defaultValue={txn.transaction_type}
+                              disabled={savingType === txn.id}
+                              onChange={(e) => handleTypeChange(txn.id, e.target.value as 'income' | 'expense' | 'transfer')}
+                              onBlur={() => setEditingTypeId(null)}
+                              className="h-7 rounded-md border border-primary/40 bg-secondary px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              <option value="income">income</option>
+                              <option value="expense">expense</option>
+                              <option value="transfer">transfer</option>
+                            </select>
+                            {savingType === txn.id && (
+                              <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setEditingTypeId(txn.id)}
+                            title="Click to change type"
+                          >
+                            <Badge variant={typeBadgeVariant(txn.transaction_type) as 'profit' | 'loss' | 'transfer'}>
+                              {txn.transaction_type}
+                            </Badge>
+                          </button>
+                        )}
                       </td>
                       <td className={`px-4 py-3.5 text-right font-mono text-sm font-semibold ${
                         txn.transaction_type === 'income' ? 'text-profit' : txn.transaction_type === 'transfer' ? 'text-blue-400' : 'text-destructive'

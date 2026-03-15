@@ -424,8 +424,8 @@ export interface Transaction {
 export interface TransactionFilters {
   start_date?: string;
   end_date?: string;
-  account_id?: number;
-  category_id?: number;
+  account_ids?: number[];
+  category_ids?: number[];
   transaction_type?: "income" | "expense" | "transfer";
 }
 
@@ -435,10 +435,10 @@ export const getTransactions = async (
   const params = new URLSearchParams();
   if (filters?.start_date) params.append("start_date", filters.start_date);
   if (filters?.end_date) params.append("end_date", filters.end_date);
-  if (filters?.account_id)
-    params.append("account_id", filters.account_id.toString());
-  if (filters?.category_id)
-    params.append("category_id", filters.category_id.toString());
+  if (filters?.account_ids && filters.account_ids.length > 0)
+    params.append("account_id", filters.account_ids.join(","));
+  if (filters?.category_ids && filters.category_ids.length > 0)
+    params.append("category_id", filters.category_ids.join(","));
   if (filters?.transaction_type)
     params.append("transaction_type", filters.transaction_type);
 
@@ -462,6 +462,19 @@ export const updateTransactionCategory = async (
 }> => {
   const response = await api.patch(`/api/v1/transactions/${transactionId}`, {
     category_id: categoryId,
+  });
+  return response.data;
+};
+
+export const updateTransactionType = async (
+  transactionId: number,
+  transactionType: "income" | "expense" | "transfer",
+): Promise<{
+  id: number;
+  transaction_type: "income" | "expense" | "transfer";
+}> => {
+  const response = await api.patch(`/api/v1/transactions/${transactionId}`, {
+    transaction_type: transactionType,
   });
   return response.data;
 };
