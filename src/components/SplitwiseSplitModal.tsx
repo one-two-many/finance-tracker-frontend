@@ -280,7 +280,7 @@ export default function SplitwiseSplitModal({
   }
 
   const calculateParticipants = () => {
-    const totalAmount = selectedTransactions.reduce((sum, t) => sum + t.amount, 0)
+    const totalAmount = Math.abs(selectedTransactions.reduce((sum, t) => sum + t.amount, 0))
     const participantIds = resolvedParticipantIds()
     const numParticipants = participantIds.size + 1 // +1 for current user
 
@@ -344,14 +344,17 @@ export default function SplitwiseSplitModal({
     ? selectedGroupIds.size
     : groups.reduce((acc, g) => acc + g.members.filter(m => selectedIds.has(m.id)).length, 0)
 
-  const canSubmit = resolvedParticipantIds().size > 0
+  // Net amount (raw sum) — negative means there's an expense to split
+  const rawTotal = selectedTransactions.reduce((sum, t) => sum + t.amount, 0)
+  const totalAmount = Math.abs(rawTotal)
+  const netIsValid = rawTotal < 0
+
+  const canSubmit = resolvedParticipantIds().size > 0 && netIsValid
 
   // True when a group is selected in equal-split mode — locks all other options
   const groupIsLocked = splitType === 'equal' && selectedGroupIds.size > 0
 
   if (!isOpen) return null
-
-  const totalAmount = selectedTransactions.reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <div
@@ -372,10 +375,15 @@ export default function SplitwiseSplitModal({
           </div>
           <div className="text-sm text-muted-foreground mt-1">
             <span className="font-medium text-foreground">Total Amount:</span>{' '}
-            <span className="font-mono font-semibold text-destructive">
-              −${totalAmount.toFixed(2)}
+            <span className={`font-mono font-semibold ${netIsValid ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {netIsValid ? `−$${totalAmount.toFixed(2)}` : `$${rawTotal.toFixed(2)}`}
             </span>
           </div>
+          {!netIsValid && (
+            <div className="mt-2 text-sm text-destructive">
+              Net amount is zero or positive — nothing to split.
+            </div>
+          )}
         </div>
 
         {/* Expense Name */}
