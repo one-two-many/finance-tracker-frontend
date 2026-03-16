@@ -526,6 +526,7 @@ export interface SplitwiseExpenseCreate {
     paid_share?: number;
   }>;
   group_id?: number;
+  description?: string;
 }
 
 export interface SplitwiseExpenseResult {

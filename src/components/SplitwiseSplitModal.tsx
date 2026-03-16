@@ -164,6 +164,9 @@ export default function SplitwiseSplitModal({
   const [friends, setFriends] = useState<SplitwiseFriend[]>([])
   const [groups, setGroups] = useState<SplitwiseGroup[]>([])
 
+  // Editable expense name — defaults to shared category or descriptions
+  const [expenseName, setExpenseName] = useState('')
+
   // Individual selection — used for friends always, and group members in exact/percent mode
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   // Group-level selection — only used in equal split mode
@@ -177,6 +180,18 @@ export default function SplitwiseSplitModal({
   const [favFriends, setFavFriends] = useState<Set<number>>(() => loadFavs(LS_FAV_FRIENDS))
   const [favGroups, setFavGroups]   = useState<Set<number>>(() => loadFavs(LS_FAV_GROUPS))
 
+  // Derive default expense name from categories of selected transactions
+  const deriveExpenseName = (): string => {
+    const categories = [...new Set(
+      selectedTransactions
+        .map(t => t.category_name)
+        .filter((c): c is string => c !== null)
+    )]
+    if (categories.length === 1) return categories[0]
+    if (categories.length > 1) return categories.join(', ')
+    return selectedTransactions.map(t => t.description).join(', ')
+  }
+
   useEffect(() => {
     if (isOpen) {
       fetchData()
@@ -185,6 +200,7 @@ export default function SplitwiseSplitModal({
       setCustomShares({})
       setFetchError('')
       setSplitType('equal')
+      setExpenseName(deriveExpenseName())
     }
   }, [isOpen])
 
@@ -304,16 +320,15 @@ export default function SplitwiseSplitModal({
         transaction_ids: selectedTransactions.map(t => t.id),
         split_type: splitType,
         participants: calculateParticipants(),
-        group_id: deriveGroupId()
+        group_id: deriveGroupId(),
+        description: expenseName || undefined
       })
 
       if (result.failed === 0) {
-        onSuccess(`Split ${result.successful} expense${result.successful !== 1 ? 's' : ''} on Splitwise`)
-      } else if (result.successful > 0) {
-        onError(`${result.successful} split, ${result.failed} failed — check Splitwise`)
+        onSuccess(`Split ${result.successful} transaction${result.successful !== 1 ? 's' : ''} as one expense on Splitwise`)
       } else {
         const firstError = result.results.find(r => r.status === 'error')?.error
-        onError(firstError || 'All expenses failed to split on Splitwise')
+        onError(firstError || 'Failed to create Splitwise expense')
       }
       onClose()
     } catch (err: any) {
@@ -361,6 +376,20 @@ export default function SplitwiseSplitModal({
               −${totalAmount.toFixed(2)}
             </span>
           </div>
+        </div>
+
+        {/* Expense Name */}
+        <div className="mb-5 space-y-1.5">
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+            Expense Name
+          </label>
+          <input
+            type="text"
+            value={expenseName}
+            onChange={(e) => setExpenseName(e.target.value)}
+            placeholder="Enter expense name..."
+            className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
         </div>
 
         {/* Split Type */}
@@ -530,7 +559,7 @@ export default function SplitwiseSplitModal({
                 : 'bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90'
             }`}
           >
-            {loading ? 'Creating Expenses...' : 'Split Expenses'}
+            {loading ? 'Creating Expense...' : 'Split Expense'}
           </button>
         </div>
       </div>
