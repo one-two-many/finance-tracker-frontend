@@ -49,7 +49,7 @@ export default function TransactionsPage() {
   const [selectedAccounts, setSelectedAccounts] = useState<number[]>([])
   const [selectedCategories, setSelectedCategories] = useState<number[]>([])
 
-  const [selectedType, setSelectedType] = useState<'income' | 'expense' | 'transfer' | undefined>(undefined)
+  const [selectedType, setSelectedType] = useState<'income' | 'expense' | 'transfer' | 'card_payment' | 'refund' | undefined>(undefined)
 
   // Delete states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -142,7 +142,7 @@ export default function TransactionsPage() {
     }
   }
 
-  const handleTypeChange = async (txnId: number, newType: 'income' | 'expense' | 'transfer') => {
+  const handleTypeChange = async (txnId: number, newType: 'income' | 'expense' | 'transfer' | 'card_payment' | 'refund') => {
     setSavingType(txnId)
     try {
       const updated = await updateTransactionType(txnId, newType)
@@ -225,9 +225,11 @@ export default function TransactionsPage() {
     setSelectedType(undefined)
   }
 
+  const isPositiveType = (type: string) => type === 'income' || type === 'card_payment' || type === 'refund'
+
   const totals = transactions.reduce(
     (acc, txn) => {
-      if (txn.transaction_type === 'income') acc.income += txn.amount
+      if (isPositiveType(txn.transaction_type)) acc.income += txn.amount
       else if (txn.transaction_type === 'expense') acc.expense += txn.amount
       return acc
     },
@@ -242,7 +244,7 @@ export default function TransactionsPage() {
           .filter((t) => selectedTransactions.has(t.id))
           .sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime())
         const net = list.reduce(
-          (sum, txn) => sum + (txn.transaction_type === 'income' ? txn.amount : -txn.amount),
+          (sum, txn) => sum + (isPositiveType(txn.transaction_type) ? txn.amount : -txn.amount),
           0
         )
         return { list, net }
@@ -252,6 +254,8 @@ export default function TransactionsPage() {
   const typeBadgeVariant = (type: string) => {
     if (type === 'income') return 'profit'
     if (type === 'expense') return 'loss'
+    if (type === 'card_payment') return 'card_payment'
+    if (type === 'refund') return 'refund'
     return 'transfer'
   }
 
@@ -383,13 +387,15 @@ export default function TransactionsPage() {
               <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Type</label>
               <select
                 value={selectedType ?? ''}
-                onChange={(e) => setSelectedType((e.target.value as 'income' | 'expense' | 'transfer') || undefined)}
+                onChange={(e) => setSelectedType((e.target.value as 'income' | 'expense' | 'transfer' | 'card_payment' | 'refund') || undefined)}
                 className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">All Types</option>
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
                 <option value="transfer">Transfer</option>
+                <option value="card_payment">Card Payment</option>
+                <option value="refund">Refund</option>
               </select>
             </div>
           </div>
@@ -564,13 +570,15 @@ export default function TransactionsPage() {
                               autoFocus
                               defaultValue={txn.transaction_type}
                               disabled={savingType === txn.id}
-                              onChange={(e) => handleTypeChange(txn.id, e.target.value as 'income' | 'expense' | 'transfer')}
+                              onChange={(e) => handleTypeChange(txn.id, e.target.value as 'income' | 'expense' | 'transfer' | 'card_payment' | 'refund')}
                               onBlur={() => setEditingTypeId(null)}
                               className="h-7 rounded-md border border-primary/40 bg-secondary px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                             >
                               <option value="income">income</option>
                               <option value="expense">expense</option>
                               <option value="transfer">transfer</option>
+                              <option value="card_payment">card payment</option>
+                              <option value="refund">refund</option>
                             </select>
                             {savingType === txn.id && (
                               <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
@@ -581,16 +589,16 @@ export default function TransactionsPage() {
                             onClick={() => setEditingTypeId(txn.id)}
                             title="Click to change type"
                           >
-                            <Badge variant={typeBadgeVariant(txn.transaction_type) as 'profit' | 'loss' | 'transfer'}>
+                            <Badge variant={typeBadgeVariant(txn.transaction_type) as 'profit' | 'loss' | 'transfer' | 'card_payment' | 'refund'}>
                               {txn.transaction_type}
                             </Badge>
                           </button>
                         )}
                       </td>
                       <td className={`px-4 py-3.5 text-right font-mono text-sm font-semibold ${
-                        txn.transaction_type === 'income' ? 'text-profit' : txn.transaction_type === 'transfer' ? 'text-blue-400' : 'text-destructive'
+                        isPositiveType(txn.transaction_type) ? 'text-profit' : txn.transaction_type === 'transfer' ? 'text-blue-400' : 'text-destructive'
                       }`}>
-                        {txn.transaction_type === 'income' ? '+' : '−'}
+                        {isPositiveType(txn.transaction_type) ? '+' : '−'}
                         {formatCurrency(Math.abs(txn.amount))}
                       </td>
                       <td className="pl-3 pr-5 py-3.5 text-center">
@@ -628,7 +636,7 @@ export default function TransactionsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">Amount</span>
-                <span className={`text-sm font-mono font-semibold ${transactionToDelete.transaction_type === 'income' ? 'text-profit' : 'text-destructive'}`}>
+                <span className={`text-sm font-mono font-semibold ${isPositiveType(transactionToDelete.transaction_type) ? 'text-profit' : 'text-destructive'}`}>
                   {formatCurrency(transactionToDelete.amount)}
                 </span>
               </div>
@@ -693,8 +701,8 @@ export default function TransactionsPage() {
                           </span>
                         )}
                       </div>
-                      <span className={`shrink-0 ml-3 font-mono text-sm font-semibold ${txn.transaction_type === 'income' ? 'text-profit' : 'text-destructive'}`}>
-                        {txn.transaction_type === 'income' ? '+' : '−'}{formatCurrency(txn.amount)}
+                      <span className={`shrink-0 ml-3 font-mono text-sm font-semibold ${isPositiveType(txn.transaction_type) ? 'text-profit' : 'text-destructive'}`}>
+                        {isPositiveType(txn.transaction_type) ? '+' : '−'}{formatCurrency(txn.amount)}
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground font-mono">{formatDate(txn.transaction_date)}</span>

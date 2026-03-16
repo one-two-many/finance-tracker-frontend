@@ -196,13 +196,13 @@ export default function DashboardPage() {
                   >
                     {/* Icon */}
                     <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
-                      txn.transaction_type === 'income'
+                      txn.transaction_type === 'income' || txn.transaction_type === 'card_payment' || txn.transaction_type === 'refund'
                         ? 'bg-[hsl(158_100%_42%/0.1)]'
                         : txn.transaction_type === 'transfer'
                         ? 'bg-blue-500/10'
                         : 'bg-destructive/10'
                     }`}>
-                      {txn.transaction_type === 'income' ? (
+                      {txn.transaction_type === 'income' || txn.transaction_type === 'card_payment' || txn.transaction_type === 'refund' ? (
                         <ArrowDownRight className="w-4 h-4 text-profit" />
                       ) : txn.transaction_type === 'transfer' ? (
                         <ArrowUpRight className="w-4 h-4 text-blue-400" />
@@ -237,13 +237,13 @@ export default function DashboardPage() {
 
                     {/* Amount */}
                     <div className={`font-mono text-sm font-semibold shrink-0 ${
-                      txn.transaction_type === 'income'
+                      txn.transaction_type === 'income' || txn.transaction_type === 'card_payment' || txn.transaction_type === 'refund'
                         ? 'text-profit'
                         : txn.transaction_type === 'transfer'
                         ? 'text-blue-400'
                         : 'text-destructive'
                     }`}>
-                      {txn.transaction_type === 'income' ? '+' : '−'}
+                      {txn.transaction_type === 'income' || txn.transaction_type === 'card_payment' || txn.transaction_type === 'refund' ? '+' : '−'}
                       {formatCurrency(Math.abs(txn.amount))}
                     </div>
                   </div>

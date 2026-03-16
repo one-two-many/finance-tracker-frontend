@@ -279,7 +279,7 @@ export const getSankeyData = async (
 export interface DashboardTransaction {
   id: number;
   account_name: string;
-  transaction_type: "income" | "expense" | "transfer";
+  transaction_type: "income" | "expense" | "transfer" | "card_payment" | "refund";
   amount: number;
   description: string;
   transaction_date: string;
@@ -412,7 +412,7 @@ export interface Transaction {
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
-  transaction_type: "income" | "expense" | "transfer";
+  transaction_type: "income" | "expense" | "transfer" | "card_payment" | "refund";
   amount: number;
   description: string;
   notes: string | null;
@@ -426,7 +426,7 @@ export interface TransactionFilters {
   end_date?: string;
   account_ids?: number[];
   category_ids?: number[];
-  transaction_type?: "income" | "expense" | "transfer";
+  transaction_type?: "income" | "expense" | "transfer" | "card_payment" | "refund";
 }
 
 export const getTransactions = async (
@@ -468,10 +468,10 @@ export const updateTransactionCategory = async (
 
 export const updateTransactionType = async (
   transactionId: number,
-  transactionType: "income" | "expense" | "transfer",
+  transactionType: "income" | "expense" | "transfer" | "card_payment" | "refund",
 ): Promise<{
   id: number;
-  transaction_type: "income" | "expense" | "transfer";
+  transaction_type: "income" | "expense" | "transfer" | "card_payment" | "refund";
 }> => {
   const response = await api.patch(`/api/v1/transactions/${transactionId}`, {
     transaction_type: transactionType,

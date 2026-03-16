@@ -25,7 +25,7 @@ export interface PreviewTransaction {
   description: string
   amount: number
   original_amount: number  // Signed amount as it appears in CSV
-  type: 'income' | 'expense' | 'transfer' | 'refund'
+  type: 'income' | 'expense' | 'transfer' | 'card_payment' | 'refund'
   suggested_category?: string
   is_duplicate: boolean
   is_transfer_candidate: boolean

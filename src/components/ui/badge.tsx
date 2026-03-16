@@ -15,6 +15,8 @@ const badgeVariants = cva(
         loss: 'bg-destructive/10 text-destructive border border-destructive/20',
         neutral: 'bg-muted text-muted-foreground',
         transfer: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+        card_payment: 'bg-violet-500/10 text-violet-400 border border-violet-500/20',
+        refund: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
       },
     },
     defaultVariants: {

@@ -183,9 +183,9 @@ export default function TransactionPreviewTable({
                     )}
                   </td>
                   <td className={`px-3 py-2.5 text-right font-mono text-sm font-medium whitespace-nowrap ${
-                    transaction.original_amount >= 0 ? 'text-profit' : 'text-destructive'
+                    currentType === 'expense' || currentType === 'transfer' ? 'text-destructive' : 'text-profit'
                   }`}>
-                    ${transaction.original_amount.toFixed(2)}
+                    {currentType === 'expense' || currentType === 'transfer' ? '−' : '+'}${transaction.amount.toFixed(2)}
                   </td>
                   <td className="px-3 py-2.5">
                     <select
@@ -199,6 +199,7 @@ export default function TransactionPreviewTable({
                       <option value="income">Income</option>
                       <option value="expense">Expense</option>
                       <option value="transfer">Transfer</option>
+                      <option value="card_payment">Card Payment</option>
                       <option value="refund">Refund</option>
                     </select>
                   </td>
