@@ -479,6 +479,25 @@ export const updateTransactionType = async (
   return response.data;
 };
 
+export const mergeTransactions = async (
+  transactionIds: number[],
+  primaryId?: number,
+): Promise<{
+  id: number;
+  amount: number;
+  transaction_type: string;
+  description: string;
+  transaction_date: string;
+  merged_count: number;
+  deleted_ids: number[];
+}> => {
+  const response = await api.post("/api/v1/transactions/merge", {
+    transaction_ids: transactionIds,
+    primary_id: primaryId,
+  });
+  return response.data;
+};
+
 // Splitwise Integration API
 
 export interface SplitwiseCredentials {
