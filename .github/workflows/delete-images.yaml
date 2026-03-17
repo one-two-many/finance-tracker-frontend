@@ -1,0 +1,22 @@
+name: Delete Older Images
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  delete-docker-images:
+    name: Delete Images
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: one-two-many
+          name: finance-tracker-frontend
+          token: ${{ secrets.GITHUB_TOKEN }}
+          untagged-keep-latest: 15
