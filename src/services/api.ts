@@ -303,6 +303,36 @@ export const getDashboardSummary = async (): Promise<DashboardSummary> => {
   return response.data;
 };
 
+// Category Expenses by Month API
+export interface CategoryExpenseCategory {
+  id: number | null;
+  name: string;
+  color: string;
+}
+
+export interface CategoryExpenseMonth {
+  month: number;
+  label: string;
+  categories: Record<string, number>;
+  total: number;
+}
+
+export interface CategoryExpensesMonthlyData {
+  year: number;
+  categories: CategoryExpenseCategory[];
+  months: CategoryExpenseMonth[];
+  grand_total: number;
+}
+
+export const getCategoryExpensesMonthly = async (
+  year: number,
+): Promise<CategoryExpensesMonthlyData> => {
+  const response = await api.get(
+    `/api/v1/analytics/category-expenses-monthly?year=${year}`,
+  );
+  return response.data;
+};
+
 // Import History API
 export interface ImportSession {
   id: number;

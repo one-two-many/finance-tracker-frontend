@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { formatCurrency } from '../lib/utils'
 import { TrendingUp, TrendingDown, PiggyBank } from 'lucide-react'
+import CategoryExpensesChart from '../components/CategoryExpensesChart'
 
 // Stable reference — recharts Sankey loops if this is an inline arrow fn
 function SankeyNode(props: {
@@ -50,6 +51,7 @@ export default function AnalyticsPage() {
   const currentMonth = new Date().toISOString().slice(0, 7)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [includeTransfers, setIncludeTransfers] = useState(false)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   const [startDate, endDate] = (() => {
     const [year, month] = selectedMonth.split('-').map(Number)
@@ -116,6 +118,18 @@ export default function AnalyticsPage() {
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="w-40"
               />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium whitespace-nowrap">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="flex h-9 w-28 rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <div className="relative">
@@ -230,6 +244,18 @@ export default function AnalyticsPage() {
               <p className="text-xs text-muted-foreground/60">Import transactions to see money flow</p>
             </div>
           )}
+        </CardContent>
+      </Card>
+      {/* Category Expenses by Month */}
+      <Card className="animate-fade-up animate-fade-up-4">
+        <CardHeader className="pb-3">
+          <CardTitle>Expenses by Category</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Monthly breakdown of spending by category — {selectedYear}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <CategoryExpensesChart year={selectedYear} />
         </CardContent>
       </Card>
     </div>
