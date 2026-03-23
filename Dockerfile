@@ -24,6 +24,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# Copy runtime config entrypoint
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

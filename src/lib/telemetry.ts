@@ -24,7 +24,9 @@ import { LoggerProvider, BatchLogRecordProcessor } from "@opentelemetry/sdk-logs
 import { SeverityNumber } from "@opentelemetry/api-logs";
 
 const OTEL_ENDPOINT =
-  import.meta.env.VITE_OTEL_ENDPOINT || "";
+  (window as any).__RUNTIME_CONFIG__?.VITE_OTEL_ENDPOINT ||
+  import.meta.env.VITE_OTEL_ENDPOINT ||
+  "";
 const SERVICE_NAME = "finance-tracker-frontend";
 
 let loggerProvider: LoggerProvider | null = null;
