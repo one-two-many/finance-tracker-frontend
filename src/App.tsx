@@ -10,6 +10,7 @@ import CategoryRulesPage from './pages/CategoryRulesPage'
 import AccountsPage from './pages/AccountsPage'
 import TransactionsPage from './pages/TransactionsPage'
 import SettingsPage from './pages/SettingsPage'
+import NetWorthPage from './pages/NetWorthPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
@@ -43,6 +44,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout><AnalyticsPage /></Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/net-worth"
+              element={
+                <ProtectedRoute>
+                  <Layout><NetWorthPage /></Layout>
                 </ProtectedRoute>
               }
             />

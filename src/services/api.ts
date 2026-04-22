@@ -41,6 +41,14 @@ export interface Account {
   bank_name?: string;
   account_number_last4?: string;
   created_at: string;
+  // CD + HYSA fields
+  interest_rate?: number | null;
+  maturity_date?: string | null;
+  term_months?: number | null;
+  inception_date?: string | null;
+  is_self_managed?: boolean;
+  // Latest date the listed balance is known correct (null for credit cards).
+  balance_as_of_date?: string | null;
 }
 
 export interface AccountCreate {
@@ -51,6 +59,12 @@ export interface AccountCreate {
   default_parser?: string;
   bank_name?: string;
   account_number_last4?: string;
+  // CD + HYSA fields
+  interest_rate?: number;
+  maturity_date?: string;
+  term_months?: number;
+  inception_date?: string;
+  is_self_managed?: boolean;
 }
 
 export interface AccountUpdate {
@@ -59,6 +73,12 @@ export interface AccountUpdate {
   default_parser?: string;
   bank_name?: string;
   account_number_last4?: string;
+  // CD + HYSA fields
+  interest_rate?: number;
+  maturity_date?: string;
+  term_months?: number;
+  inception_date?: string;
+  is_self_managed?: boolean;
 }
 
 export interface TransactionImportResult {
@@ -627,6 +647,235 @@ export const createSplitwiseExpenses = async (
   const response = await api.post(
     "/api/v1/settings/splitwise/expenses",
     request,
+  );
+  return response.data;
+};
+
+// ─── Net Worth Types ────────────────────────────────────────────────────────
+
+export interface ManualBalanceUpdate {
+  balance: number;
+  interest_earned?: number;
+  as_of_date?: string; // ISO date "YYYY-MM-DD"; defaults to today server-side
+  note?: string;
+}
+
+export interface BalanceSnapshot {
+  id: number;
+  account_id: number;
+  balance: number;
+  snapshot_date: string;
+  snapshot_type: string;
+  period_year: number;
+  period_month: number;
+}
+
+export interface CreatedInterestTxn {
+  id: number;
+  amount: number;
+  description: string;
+  transaction_date: string;
+  category_id: number;
+}
+
+export interface ManualBalanceResponse {
+  snapshot: BalanceSnapshot;
+  interest_transaction: CreatedInterestTxn | null;
+  account_current_balance: number;
+}
+
+export interface AccountSummary {
+  id: number;
+  name: string;
+  balance: number;
+}
+
+export interface AccountTypeTotal {
+  account_type: string;
+  total: number;
+  is_liability: boolean;
+  accounts: AccountSummary[];
+}
+
+export interface NetWorthDelta {
+  mom_abs: number | null;
+  mom_pct: number | null;
+  yoy_abs: number | null;
+  yoy_pct: number | null;
+}
+
+export interface NetWorthCurrent {
+  total: number;
+  assets: number;
+  liabilities: number;
+  as_of: string;
+  by_type: AccountTypeTotal[];
+  delta: NetWorthDelta;
+  sparkline: number[];
+}
+
+export interface NetWorthHistoryPoint {
+  period: string; // "YYYY-MM"
+  assets: number;
+  liabilities: number;
+  net: number;
+}
+
+export interface SavingsGoalProjection {
+  months_to_target: number | null;
+  projected_date: string | null; // ISO date "YYYY-MM-DD"
+  reason: string | null;
+}
+
+export interface SavingsGoal {
+  id: number;
+  name: string;
+  target_amount: number;
+  target_date: string | null; // ISO date "YYYY-MM-DD"
+  account_id: number | null;
+  created_at: string;
+  updated_at: string | null;
+  current_amount: number;
+  progress_pct: number;
+  projection: SavingsGoalProjection;
+}
+
+export interface SavingsGoalCreate {
+  name: string;
+  target_amount: number;
+  target_date?: string;
+  account_id?: number;
+}
+
+export interface SavingsGoalUpdate {
+  name?: string;
+  target_amount?: number;
+  target_date?: string;
+  account_id?: number;
+}
+
+// ─── Net Worth API Functions ────────────────────────────────────────────────
+
+export const getCurrentNetWorth = async (): Promise<NetWorthCurrent> => {
+  const response = await api.get("/api/v1/net-worth/current");
+  return response.data;
+};
+
+// Exported for future use; not called in NetWorthPage (projections come from GET /goals)
+export const getNetWorthHistory = async (
+  months: number = 24,
+): Promise<NetWorthHistoryPoint[]> => {
+  const response = await api.get(
+    `/api/v1/net-worth/history?months=${months}`,
+  );
+  return response.data;
+};
+
+export const listSavingsGoals = async (): Promise<SavingsGoal[]> => {
+  const response = await api.get("/api/v1/net-worth/goals");
+  return response.data;
+};
+
+export const createSavingsGoal = async (
+  data: SavingsGoalCreate,
+): Promise<SavingsGoal> => {
+  const response = await api.post("/api/v1/net-worth/goals", data);
+  return response.data;
+};
+
+export const updateSavingsGoal = async (
+  id: number,
+  data: SavingsGoalUpdate,
+): Promise<SavingsGoal> => {
+  const response = await api.patch(`/api/v1/net-worth/goals/${id}`, data);
+  return response.data;
+};
+
+// Per lead directive 1: backend returns 200 + { message: string }, NOT 204
+export const deleteSavingsGoal = async (
+  id: number,
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/v1/net-worth/goals/${id}`);
+  return response.data;
+};
+
+export const updateAccountBalance = async (
+  accountId: number,
+  data: ManualBalanceUpdate,
+): Promise<ManualBalanceResponse> => {
+  const response = await api.post(
+    `/api/v1/accounts/${accountId}/balance-update`,
+    data,
+  );
+  return response.data;
+};
+
+// ─── Self-managed accounts ──────────────────────────────────────────────────
+
+export interface SelfManagedDeposit {
+  amount: number;
+  as_of_date?: string;
+  note?: string;
+}
+
+export interface SelfManagedWithdrawal {
+  amount: number;
+  as_of_date?: string;
+  note?: string;
+}
+
+export interface SelfManagedRateChange {
+  new_rate: number; // decimal, e.g. 0.045 for 4.5%
+  effective_date: string;
+}
+
+export interface RateHistoryEntry {
+  id: number;
+  rate: number;
+  effective_date: string;
+  created_at: string;
+}
+
+export interface SelfManagedAdjustmentResponse {
+  snapshot: BalanceSnapshot | null;
+  transaction: CreatedInterestTxn | null;
+  rate_history: RateHistoryEntry | null;
+  account_current_balance: number;
+  account_interest_rate: number | null;
+}
+
+export const depositToSelfManaged = async (
+  accountId: number,
+  data: SelfManagedDeposit,
+): Promise<SelfManagedAdjustmentResponse> => {
+  const response = await api.post(`/api/v1/accounts/${accountId}/deposit`, data);
+  return response.data;
+};
+
+export const withdrawFromSelfManaged = async (
+  accountId: number,
+  data: SelfManagedWithdrawal,
+): Promise<SelfManagedAdjustmentResponse> => {
+  const response = await api.post(`/api/v1/accounts/${accountId}/withdraw`, data);
+  return response.data;
+};
+
+export const changeSelfManagedRate = async (
+  accountId: number,
+  data: SelfManagedRateChange,
+): Promise<SelfManagedAdjustmentResponse> => {
+  const response = await api.post(
+    `/api/v1/accounts/${accountId}/rate-change`,
+    data,
+  );
+  return response.data;
+};
+
+export const listRateHistory = async (
+  accountId: number,
+): Promise<RateHistoryEntry[]> => {
+  const response = await api.get(
+    `/api/v1/accounts/${accountId}/rate-history`,
   );
   return response.data;
 };
