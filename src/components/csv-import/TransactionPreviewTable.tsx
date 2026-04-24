@@ -182,11 +182,19 @@ export default function TransactionPreviewTable({
                       <p className="text-xs text-muted-foreground mt-0.5 px-1">{transaction.notes}</p>
                     )}
                   </td>
-                  <td className={`px-3 py-2.5 text-right font-mono text-sm font-medium whitespace-nowrap ${
-                    currentType === 'expense' || currentType === 'transfer' ? 'text-destructive' : 'text-profit'
-                  }`}>
-                    {currentType === 'expense' || currentType === 'transfer' ? '−' : '+'}${transaction.amount.toFixed(2)}
-                  </td>
+                  {(() => {
+                    const signed = transaction.original_amount ?? transaction.amount
+                    const isOutflow = currentType === 'expense'
+                      || (currentType === 'transfer' && signed < 0)
+                      || (currentType === 'card_payment' && signed < 0)
+                    return (
+                      <td className={`px-3 py-2.5 text-right font-mono text-sm font-medium whitespace-nowrap ${
+                        isOutflow ? 'text-destructive' : 'text-profit'
+                      }`}>
+                        {isOutflow ? '−' : '+'}${transaction.amount.toFixed(2)}
+                      </td>
+                    )
+                  })()}
                   <td className="px-3 py-2.5">
                     <select
                       value={currentType}
