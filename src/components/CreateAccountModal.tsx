@@ -22,9 +22,26 @@ export default function CreateAccountModal({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // CD + HYSA new state
+  const [interestRatePct, setInterestRatePct] = useState('') // displayed as %, e.g. "4.50"
+  const [termMonths, setTermMonths] = useState('')
+  const [inceptionDate, setInceptionDate] = useState('')
+  const [maturityDate, setMaturityDate] = useState('')
+  const [maturityOverridden, setMaturityOverridden] = useState(false)
+  const [isSelfManaged, setIsSelfManaged] = useState(false)
+
   useEffect(() => {
     if (isOpen) loadParsers()
   }, [isOpen])
+
+  // Auto-fill maturity date when inception + term are set and user hasn't manually overridden
+  useEffect(() => {
+    if (inceptionDate && termMonths && !maturityOverridden) {
+      const d = new Date(inceptionDate)
+      d.setMonth(d.getMonth() + parseInt(termMonths, 10))
+      setMaturityDate(d.toISOString().slice(0, 10))
+    }
+  }, [inceptionDate, termMonths, maturityOverridden])
 
   const loadParsers = async () => {
     try {
@@ -42,12 +59,31 @@ export default function CreateAccountModal({
     { value: 'investment', label: 'Investment Account' },
     { value: 'cash', label: 'Cash' },
     { value: 'other', label: 'Other' },
+    { value: 'high_yield_savings', label: 'High Yield Savings (HYSA)' },
+    { value: 'cd', label: 'Certificate of Deposit (CD)' },
   ]
+
+  const isCD = accountType === 'cd'
+  const isHYSA = accountType === 'high_yield_savings'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (!name.trim()) { setError('Account name is required'); return }
+
+    // CD-specific validation
+    if (isCD) {
+      if (!initialBalance || parseFloat(initialBalance) <= 0) {
+        setError('CDs require a positive initial balance'); return
+      }
+      if (!interestRatePct || parseFloat(interestRatePct) < 0) {
+        setError('Interest rate must be 0 or higher'); return
+      }
+      if (!termMonths && !maturityDate) {
+        setError('CDs require either Term (months) or a Maturity Date'); return
+      }
+    }
+
     setIsLoading(true)
     try {
       const accountData: AccountCreate = {
@@ -56,19 +92,37 @@ export default function CreateAccountModal({
         currency: 'USD',
         initial_balance: initialBalance ? parseFloat(initialBalance) : 0,
         default_parser: defaultParser || undefined,
+        interest_rate: interestRatePct ? parseFloat(interestRatePct) / 100 : undefined,
+        term_months: termMonths ? parseInt(termMonths, 10) : undefined,
+        inception_date: inceptionDate || undefined,
+        maturity_date: maturityDate || undefined,
+        is_self_managed: isSelfManaged,
       }
       await createAccount(accountData)
-      setName(''); setAccountType('checking'); setInitialBalance(''); setDefaultParser('')
-      onSuccess(); onClose()
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create account')
+      handleClose()
+      onSuccess()
+    } catch (err: unknown) {
+      setError(
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to create account',
+      )
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleClose = () => {
-    setName(''); setAccountType('checking'); setInitialBalance(''); setDefaultParser(''); setError('')
+    setName('')
+    setAccountType('checking')
+    setInitialBalance('')
+    setDefaultParser('')
+    setError('')
+    setInterestRatePct('')
+    setTermMonths('')
+    setInceptionDate('')
+    setMaturityDate('')
+    setMaturityOverridden(false)
+    setIsSelfManaged(false)
     onClose()
   }
 
@@ -80,7 +134,7 @@ export default function CreateAccountModal({
       onClick={handleClose}
     >
       <div
-        className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-up"
+        className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-up max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-display text-lg font-semibold text-foreground mb-5">Create Account</h3>
@@ -103,7 +157,15 @@ export default function CreateAccountModal({
             </label>
             <select
               value={accountType}
-              onChange={(e) => setAccountType(e.target.value)}
+              onChange={(e) => {
+                setAccountType(e.target.value)
+                // Reset CD/HYSA fields when switching types
+                setInterestRatePct('')
+                setTermMonths('')
+                setInceptionDate('')
+                setMaturityDate('')
+                setMaturityOverridden(false)
+              }}
               className="flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {accountTypes.map((type) => (
@@ -111,6 +173,182 @@ export default function CreateAccountModal({
               ))}
             </select>
           </div>
+
+          {/* CD-specific fields */}
+          {isCD && (
+            <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">CD Details</p>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Interest Rate (% APR) <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={interestRatePct}
+                  onChange={(e) => setInterestRatePct(e.target.value)}
+                  placeholder="e.g., 4.50"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Term (months)
+                </label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={termMonths}
+                  onChange={(e) => {
+                    setTermMonths(e.target.value)
+                    setMaturityOverridden(false)
+                  }}
+                  placeholder="e.g., 12"
+                  className="font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Inception Date
+                </label>
+                <Input
+                  type="date"
+                  value={inceptionDate}
+                  onChange={(e) => {
+                    setInceptionDate(e.target.value)
+                    setMaturityOverridden(false)
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Maturity Date
+                  {!maturityOverridden && termMonths && inceptionDate && (
+                    <span className="ml-2 text-xs text-muted-foreground normal-case tracking-normal">(auto-computed)</span>
+                  )}
+                </label>
+                <Input
+                  type="date"
+                  value={maturityDate}
+                  onChange={(e) => {
+                    setMaturityDate(e.target.value)
+                    setMaturityOverridden(true)
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* HYSA-specific fields */}
+          {isHYSA && (
+            <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">HYSA Details</p>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Interest Rate (% APR)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={interestRatePct}
+                  onChange={(e) => setInterestRatePct(e.target.value)}
+                  placeholder="e.g., 4.50"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isSelfManaged ? 'Used to auto-accrue monthly interest' : 'Reference only — used for display'}
+                </p>
+              </div>
+
+              <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={isSelfManaged}
+                  onChange={(e) => setIsSelfManaged(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border bg-secondary accent-[hsl(158,100%,42%)]"
+                />
+                <span className="text-sm text-foreground">
+                  Self-managed
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    No CSV statements for this account. I'll enter deposits/withdrawals manually; the
+                    app will auto-add monthly interest.
+                  </span>
+                </span>
+              </label>
+
+              {isSelfManaged && (
+                <div className="space-y-1.5">
+                  <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                    Inception Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={inceptionDate}
+                    onChange={(e) => setInceptionDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Interest accrual starts the month after this date. Defaults to today if left empty.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Self-managed block for non-HYSA, non-CD types (Savings, Other, etc.) */}
+          {!isHYSA && !isCD && (
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isSelfManaged}
+                onChange={(e) => setIsSelfManaged(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border bg-secondary accent-[hsl(158,100%,42%)]"
+              />
+              <span className="text-sm text-foreground">
+                Self-managed
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  No CSV statements for this account — enter balance changes manually. Add an interest
+                  rate below to auto-accrue monthly interest.
+                </span>
+              </span>
+            </label>
+          )}
+
+          {isSelfManaged && !isHYSA && !isCD && (
+            <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Interest Rate (% APR)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={interestRatePct}
+                  onChange={(e) => setInterestRatePct(e.target.value)}
+                  placeholder="e.g., 4.50 — leave blank if none"
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                  Inception Date
+                </label>
+                <Input
+                  type="date"
+                  value={inceptionDate}
+                  onChange={(e) => setInceptionDate(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
@@ -139,8 +377,13 @@ export default function CreateAccountModal({
               value={initialBalance}
               onChange={(e) => setInitialBalance(e.target.value)}
               placeholder="0.00"
+              className="font-mono"
             />
-            <p className="text-xs text-muted-foreground">Leave empty or enter 0 if starting fresh</p>
+            <p className="text-xs text-muted-foreground">
+              {isCD
+                ? 'Required for CDs — enter the principal amount'
+                : 'Leave empty or enter 0 if starting fresh'}
+            </p>
           </div>
 
           {error && (

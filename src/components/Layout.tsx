@@ -11,6 +11,7 @@ import {
   LogOut,
   Upload,
   TrendingUp,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useState } from 'react'
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/accounts', icon: CreditCard, label: 'Accounts' },
+  { to: '/net-worth', icon: Wallet, label: 'Net Worth' },
   { to: '/import-history', icon: History, label: 'History' },
   { to: '/category-rules', icon: Tag, label: 'Rules' },
   { to: '/settings', icon: Settings, label: 'Settings' },
