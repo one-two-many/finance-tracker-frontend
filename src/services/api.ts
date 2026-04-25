@@ -49,6 +49,11 @@ export interface Account {
   is_self_managed?: boolean;
   // Latest date the listed balance is known correct (null for credit cards).
   balance_as_of_date?: string | null;
+  // Household / shared-ownership
+  household_id?: number | null;
+  household_name?: string | null;
+  creator_user_id?: number | null;
+  creator_username?: string | null;
 }
 
 export interface AccountCreate {
@@ -59,6 +64,7 @@ export interface AccountCreate {
   default_parser?: string;
   bank_name?: string;
   account_number_last4?: string;
+  household_id?: number | null;
   // CD + HYSA fields
   interest_rate?: number;
   maturity_date?: string;
@@ -73,6 +79,7 @@ export interface AccountUpdate {
   default_parser?: string;
   bank_name?: string;
   account_number_last4?: string;
+  household_id?: number | null;
   // CD + HYSA fields
   interest_rate?: number;
   maturity_date?: string;
@@ -284,11 +291,13 @@ export const getSankeyData = async (
   startDate?: string,
   endDate?: string,
   includeTransfers: boolean = false,
+  householdId?: number | null,
 ): Promise<SankeyData> => {
   const params = new URLSearchParams();
   if (startDate) params.append("start_date", startDate);
   if (endDate) params.append("end_date", endDate);
   params.append("include_transfers", includeTransfers.toString());
+  if (householdId) params.append("household_id", householdId.toString());
 
   const response = await api.get(
     `/api/v1/analytics/sankey?${params.toString()}`,
@@ -318,8 +327,15 @@ export interface DashboardSummary {
   };
 }
 
-export const getDashboardSummary = async (): Promise<DashboardSummary> => {
-  const response = await api.get("/api/v1/analytics/dashboard");
+export const getDashboardSummary = async (
+  householdId?: number | null,
+): Promise<DashboardSummary> => {
+  const params = new URLSearchParams();
+  if (householdId) params.append("household_id", householdId.toString());
+  const qs = params.toString();
+  const response = await api.get(
+    qs ? `/api/v1/analytics/dashboard?${qs}` : "/api/v1/analytics/dashboard",
+  );
   return response.data;
 };
 
@@ -346,9 +362,13 @@ export interface CategoryExpensesMonthlyData {
 
 export const getCategoryExpensesMonthly = async (
   year: number,
+  householdId?: number | null,
 ): Promise<CategoryExpensesMonthlyData> => {
+  const params = new URLSearchParams();
+  params.append("year", year.toString());
+  if (householdId) params.append("household_id", householdId.toString());
   const response = await api.get(
-    `/api/v1/analytics/category-expenses-monthly?year=${year}`,
+    `/api/v1/analytics/category-expenses-monthly?${params.toString()}`,
   );
   return response.data;
 };
@@ -459,6 +479,7 @@ export interface Transaction {
   id: number;
   account_id: number;
   account_name: string;
+  account_household_id?: number | null;
   category_id: number | null;
   category_name: string | null;
   category_color: string | null;
@@ -469,6 +490,7 @@ export interface Transaction {
   transaction_date: string;
   created_at: string | null;
   splitwise_split: boolean;
+  user_id?: number;
 }
 
 export interface TransactionFilters {
@@ -756,12 +778,18 @@ export interface SavingsGoalUpdate {
 
 // ─── Net Worth API Functions ────────────────────────────────────────────────
 
-export const getCurrentNetWorth = async (): Promise<NetWorthCurrent> => {
-  const response = await api.get("/api/v1/net-worth/current");
+export const getCurrentNetWorth = async (
+  householdId?: number | null,
+): Promise<NetWorthCurrent> => {
+  const params = new URLSearchParams();
+  if (householdId) params.append("household_id", householdId.toString());
+  const qs = params.toString();
+  const response = await api.get(
+    qs ? `/api/v1/net-worth/current?${qs}` : "/api/v1/net-worth/current",
+  );
   return response.data;
 };
 
-// Exported for future use; not called in NetWorthPage (projections come from GET /goals)
 export const getNetWorthHistory = async (
   months: number = 24,
 ): Promise<NetWorthHistoryPoint[]> => {
@@ -876,6 +904,147 @@ export const listRateHistory = async (
 ): Promise<RateHistoryEntry[]> => {
   const response = await api.get(
     `/api/v1/accounts/${accountId}/rate-history`,
+  );
+  return response.data;
+};
+
+// =============================================================================
+// Households API
+// =============================================================================
+
+export type HouseholdRole = "admin" | "member";
+export type HouseholdInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "cancelled";
+
+export interface HouseholdSummary {
+  id: number;
+  name: string;
+  role: HouseholdRole;
+  member_count: number;
+  created_at: string;
+}
+
+export interface HouseholdMember {
+  user_id: number;
+  username: string;
+  email: string;
+  role: HouseholdRole;
+  joined_at: string;
+}
+
+export interface HouseholdDetail {
+  id: number;
+  name: string;
+  role: HouseholdRole;
+  members: HouseholdMember[];
+  created_at: string;
+}
+
+export interface HouseholdInvitation {
+  id: number;
+  household_id: number;
+  household_name: string;
+  inviter_user_id: number;
+  inviter_username: string;
+  invitee_user_id: number;
+  status: HouseholdInvitationStatus;
+  created_at: string;
+  responded_at: string | null;
+}
+
+export const listHouseholds = async (): Promise<HouseholdSummary[]> => {
+  const response = await api.get("/api/v1/households");
+  return response.data;
+};
+
+export const createHousehold = async (
+  name: string,
+): Promise<HouseholdSummary> => {
+  const response = await api.post("/api/v1/households", { name });
+  return response.data;
+};
+
+export const getHousehold = async (
+  householdId: number,
+): Promise<HouseholdDetail> => {
+  const response = await api.get(`/api/v1/households/${householdId}`);
+  return response.data;
+};
+
+export const renameHousehold = async (
+  householdId: number,
+  name: string,
+): Promise<HouseholdSummary> => {
+  const response = await api.patch(`/api/v1/households/${householdId}`, {
+    name,
+  });
+  return response.data;
+};
+
+export const deleteHousehold = async (householdId: number): Promise<void> => {
+  await api.delete(`/api/v1/households/${householdId}`);
+};
+
+export const inviteToHousehold = async (
+  householdId: number,
+  emailOrUsername: string,
+): Promise<HouseholdInvitation> => {
+  const response = await api.post(
+    `/api/v1/households/${householdId}/invitations`,
+    { email_or_username: emailOrUsername },
+  );
+  return response.data;
+};
+
+export const listHouseholdInvitations = async (
+  householdId: number,
+): Promise<HouseholdInvitation[]> => {
+  const response = await api.get(
+    `/api/v1/households/${householdId}/invitations`,
+  );
+  return response.data;
+};
+
+export const cancelHouseholdInvitation = async (
+  householdId: number,
+  invitationId: number,
+): Promise<void> => {
+  await api.delete(
+    `/api/v1/households/${householdId}/invitations/${invitationId}`,
+  );
+};
+
+export const removeHouseholdMember = async (
+  householdId: number,
+  userId: number,
+): Promise<void> => {
+  await api.delete(`/api/v1/households/${householdId}/members/${userId}`);
+};
+
+export const listReceivedInvitations = async (): Promise<
+  HouseholdInvitation[]
+> => {
+  const response = await api.get("/api/v1/households/invitations/received");
+  return response.data;
+};
+
+export const acceptInvitation = async (
+  invitationId: number,
+): Promise<HouseholdSummary> => {
+  const response = await api.post(
+    `/api/v1/households/invitations/${invitationId}/accept`,
+  );
+  return response.data;
+};
+
+export const declineInvitation = async (
+  invitationId: number,
+): Promise<HouseholdInvitation> => {
+  const response = await api.post(
+    `/api/v1/households/invitations/${invitationId}/decline`,
   );
   return response.data;
 };

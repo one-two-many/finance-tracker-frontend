@@ -1,5 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -12,30 +12,30 @@ import {
   Upload,
   TrendingUp,
   Wallet,
-} from 'lucide-react'
-import { cn } from '../lib/utils'
-import { useState } from 'react'
-import CSVUploadModalNew from './CSVUploadModalNew'
+} from "lucide-react";
+import { cn } from "../lib/utils";
+import { useState } from "react";
+import CSVUploadModalNew from "./CSVUploadModalNew";
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/transactions', icon: ArrowLeftRight, label: 'Transactions' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/accounts', icon: CreditCard, label: 'Accounts' },
-  { to: '/net-worth', icon: Wallet, label: 'Net Worth' },
-  { to: '/import-history', icon: History, label: 'History' },
-  { to: '/category-rules', icon: Tag, label: 'Rules' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-]
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/transactions", icon: ArrowLeftRight, label: "Transactions" },
+  { to: "/analytics", icon: BarChart3, label: "Analytics" },
+  { to: "/accounts", icon: CreditCard, label: "Accounts" },
+  { to: "/net-worth", icon: Wallet, label: "Net Worth" },
+  { to: "/import-history", icon: History, label: "History" },
+  { to: "/category-rules", icon: Tag, label: "Rules" },
+  { to: "/settings", icon: Settings, label: "Settings" },
+];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const [uploadOpen, setUploadOpen] = useState(false)
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const initials = user?.username
     ? user.username.slice(0, 2).toUpperCase()
-    : 'U'
+    : "U";
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -44,10 +44,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
-            <TrendingUp className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
+            <TrendingUp
+              className="w-4 h-4 text-primary-foreground"
+              strokeWidth={2.5}
+            />
           </div>
           <span className="font-display text-base font-bold tracking-tight text-foreground">
-            Vault
+            Finance tracker
           </span>
         </div>
 
@@ -59,10 +62,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               to={to}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group',
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group",
                   isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary",
                 )
               }
             >
@@ -70,8 +73,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <>
                   <Icon
                     className={cn(
-                      'w-4 h-4 transition-colors',
-                      isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                      "w-4 h-4 transition-colors",
+                      isActive
+                        ? "text-primary"
+                        : "text-muted-foreground group-hover:text-foreground",
                     )}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
@@ -106,7 +111,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               {user?.username}
             </span>
             <button
-              onClick={() => { logout(); navigate('/login'); }}
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
               className="text-muted-foreground hover:text-foreground transition-colors ml-auto"
               title="Sign out"
             >
@@ -117,19 +125,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
 
       <CSVUploadModalNew
         isOpen={uploadOpen}
         onClose={() => setUploadOpen(false)}
         onSuccess={() => {
-          setUploadOpen(false)
+          setUploadOpen(false);
           // Trigger a page refresh of data without navigation
-          window.dispatchEvent(new Event('csv-import-success'))
+          window.dispatchEvent(new Event("csv-import-success"));
         }}
       />
     </div>
-  )
+  );
 }

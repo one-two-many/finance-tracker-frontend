@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input'
 import { formatCurrency } from '../lib/utils'
 import { TrendingUp, TrendingDown, PiggyBank } from 'lucide-react'
 import CategoryExpensesChart from '../components/CategoryExpensesChart'
+import HouseholdScopePicker from '../components/HouseholdScopePicker'
 
 // Stable reference — recharts Sankey loops if this is an inline arrow fn
 function SankeyNode(props: {
@@ -52,6 +53,7 @@ export default function AnalyticsPage() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const [includeTransfers, setIncludeTransfers] = useState(false)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [householdId, setHouseholdId] = useState<number | null>(null)
 
   const [startDate, endDate] = (() => {
     const [year, month] = selectedMonth.split('-').map(Number)
@@ -63,11 +65,11 @@ export default function AnalyticsPage() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getSankeyData(startDate, endDate, includeTransfers)
+    getSankeyData(startDate, endDate, includeTransfers, householdId)
       .then(setSankeyData)
       .catch(() => setError('Failed to load analytics data'))
       .finally(() => setLoading(false))
-  }, [selectedMonth, includeTransfers, startDate, endDate])
+  }, [selectedMonth, includeTransfers, startDate, endDate, householdId])
 
   const transformedData = sankeyData
     ? (() => {
@@ -101,9 +103,12 @@ export default function AnalyticsPage() {
   return (
     <div className="p-8 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="animate-fade-up">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-1">Insights</p>
-        <h1 className="font-display text-2xl font-bold text-foreground">Analytics</h1>
+      <div className="animate-fade-up flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-1">Insights</p>
+          <h1 className="font-display text-2xl font-bold text-foreground">Analytics</h1>
+        </div>
+        <HouseholdScopePicker value={householdId} onChange={setHouseholdId} />
       </div>
 
       {/* Controls */}
@@ -255,7 +260,7 @@ export default function AnalyticsPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <CategoryExpensesChart year={selectedYear} />
+          <CategoryExpensesChart year={selectedYear} householdId={householdId} />
         </CardContent>
       </Card>
     </div>

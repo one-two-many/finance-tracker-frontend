@@ -19,9 +19,10 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface CategoryExpensesChartProps {
   year: number
+  householdId?: number | null
 }
 
-export default function CategoryExpensesChart({ year }: CategoryExpensesChartProps) {
+export default function CategoryExpensesChart({ year, householdId }: CategoryExpensesChartProps) {
   const [data, setData] = useState<CategoryExpensesMonthlyData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,11 +30,11 @@ export default function CategoryExpensesChart({ year }: CategoryExpensesChartPro
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getCategoryExpensesMonthly(year)
+    getCategoryExpensesMonthly(year, householdId)
       .then(setData)
       .catch(() => setError('Failed to load category expenses'))
       .finally(() => setLoading(false))
-  }, [year])
+  }, [year, householdId])
 
   if (loading) {
     return (

@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from '../lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import CreateAccountModal from '../components/CreateAccountModal'
+import HouseholdScopePicker from '../components/HouseholdScopePicker'
 import {
   TrendingUp,
   TrendingDown,
@@ -23,12 +24,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [createAccountOpen, setCreateAccountOpen] = useState(false)
+  const [householdId, setHouseholdId] = useState<number | null>(null)
 
   const fetchData = async () => {
     try {
       setLoading(true)
       setError(null)
-      const [data, accts] = await Promise.all([getDashboardSummary(), getAccounts()])
+      const [data, accts] = await Promise.all([getDashboardSummary(householdId), getAccounts()])
       setDashboardData(data)
       setAccounts(accts)
     } catch {
@@ -43,7 +45,8 @@ export default function DashboardPage() {
     const handler = () => fetchData()
     window.addEventListener('csv-import-success', handler)
     return () => window.removeEventListener('csv-import-success', handler)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [householdId])
 
   const netSavings = dashboardData
     ? dashboardData.month_income - dashboardData.month_expenses
@@ -74,20 +77,23 @@ export default function DashboardPage() {
   return (
     <div className="p-8 space-y-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between animate-fade-up">
+      <div className="flex items-start justify-between animate-fade-up flex-wrap gap-4">
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-1">Overview</p>
           <h1 className="font-display text-2xl font-bold text-foreground">Dashboard</h1>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCreateAccountOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Account
-        </Button>
+        <div className="flex items-center gap-3">
+          <HouseholdScopePicker value={householdId} onChange={setHouseholdId} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCreateAccountOpen(true)}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Account
+          </Button>
+        </div>
       </div>
 
       {/* Stat cards */}
