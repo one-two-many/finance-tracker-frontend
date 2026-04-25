@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
-import { createAccount, listParsers, type AccountCreate, type Parser } from '../services/api'
+import { Users } from 'lucide-react'
+import {
+  createAccount,
+  listParsers,
+  listHouseholds,
+  type AccountCreate,
+  type HouseholdSummary,
+  type Parser,
+} from '../services/api'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 
@@ -30,8 +38,22 @@ export default function CreateAccountModal({
   const [maturityOverridden, setMaturityOverridden] = useState(false)
   const [isSelfManaged, setIsSelfManaged] = useState(false)
 
+  // Household / joint-account state
+  const [ownership, setOwnership] = useState<'personal' | 'joint'>('personal')
+  const [households, setHouseholds] = useState<HouseholdSummary[]>([])
+  const [householdId, setHouseholdId] = useState<string>('')
+
   useEffect(() => {
-    if (isOpen) loadParsers()
+    if (isOpen) {
+      loadParsers()
+      listHouseholds()
+        .then((data) => {
+          setHouseholds(data)
+          if (data.length > 0 && !householdId) setHouseholdId(String(data[0].id))
+        })
+        .catch(() => setHouseholds([]))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   // Auto-fill maturity date when inception + term are set and user hasn't manually overridden
@@ -97,6 +119,12 @@ export default function CreateAccountModal({
         inception_date: inceptionDate || undefined,
         maturity_date: maturityDate || undefined,
         is_self_managed: isSelfManaged,
+        household_id: ownership === 'joint' && householdId ? parseInt(householdId, 10) : undefined,
+      }
+      if (ownership === 'joint' && !householdId) {
+        setError('Choose a household for the joint account')
+        setIsLoading(false)
+        return
       }
       await createAccount(accountData)
       handleClose()
@@ -123,6 +151,8 @@ export default function CreateAccountModal({
     setMaturityDate('')
     setMaturityOverridden(false)
     setIsSelfManaged(false)
+    setOwnership('personal')
+    setHouseholdId(households.length > 0 ? String(households[0].id) : '')
     onClose()
   }
 
@@ -172,6 +202,52 @@ export default function CreateAccountModal({
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+              Ownership
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setOwnership('personal')}
+                className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                  ownership === 'personal'
+                    ? 'bg-primary/10 border-primary text-primary font-medium'
+                    : 'bg-secondary border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Personal
+              </button>
+              <button
+                type="button"
+                onClick={() => setOwnership('joint')}
+                disabled={households.length === 0}
+                className={`px-3 py-2 rounded-lg border text-sm transition-colors flex items-center justify-center gap-1.5 ${
+                  ownership === 'joint'
+                    ? 'bg-primary/10 border-primary text-primary font-medium'
+                    : 'bg-secondary border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground'
+                }`}
+                title={households.length === 0 ? 'Create a household first in Settings' : 'Shared with the selected household'}
+              >
+                <Users className="w-3.5 h-3.5" /> Joint
+              </button>
+            </div>
+            {ownership === 'joint' && households.length > 0 && (
+              <select
+                value={householdId}
+                onChange={(e) => setHouseholdId(e.target.value)}
+                className="mt-2 flex h-9 w-full rounded-lg border border-border bg-secondary px-3 py-1 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {households.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            )}
+            {ownership === 'joint' && households.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Create a household in Settings first.</p>
+            )}
           </div>
 
           {/* CD-specific fields */}

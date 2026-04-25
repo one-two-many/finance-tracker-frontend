@@ -14,6 +14,7 @@ import { Input } from "../components/ui/input";
 import { useToast } from "../components/Toast";
 import { ToastContainer } from "../components/Toast";
 import UpdateBalanceModal from "../components/UpdateBalanceModal";
+import HouseholdScopePicker from "../components/HouseholdScopePicker";
 import {
   getCurrentNetWorth,
   listSavingsGoals,
@@ -471,12 +472,13 @@ export default function NetWorthPage() {
     useState<UpdateBalanceTarget | null>(null);
 
   const { toasts, showToast, dismissToast } = useToast();
+  const [householdId, setHouseholdId] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       setError(null);
       const [nw, gl] = await Promise.all([
-        getCurrentNetWorth(),
+        getCurrentNetWorth(householdId),
         listSavingsGoals(),
       ]);
       setCurrent(nw);
@@ -489,7 +491,7 @@ export default function NetWorthPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [householdId]);
 
   useEffect(() => {
     loadData();
@@ -597,9 +599,12 @@ export default function NetWorthPage() {
     <div className="p-8 space-y-6 max-w-5xl mx-auto">
       {/* ── Hero card ── */}
       <div className="bg-card border border-border rounded-2xl p-8 animate-fade-up">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">
-          Net Worth
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+            Net Worth
+          </p>
+          <HouseholdScopePicker value={householdId} onChange={setHouseholdId} />
+        </div>
 
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="space-y-3">

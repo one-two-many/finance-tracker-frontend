@@ -15,6 +15,7 @@ import {
 } from '../services/api'
 import SplitwiseSplitModal from '../components/SplitwiseSplitModal'
 import { useToast, ToastContainer } from '../components/Toast'
+import { useAuth } from '../lib/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -78,6 +79,7 @@ export default function TransactionsPage() {
   const [savingType, setSavingType] = useState<number | null>(null)
 
   const { toasts, showToast, dismissToast } = useToast()
+  const { user: authUser } = useAuth()
 
   const loadTransactions = useCallback(async () => {
     setLoading(true)
@@ -516,7 +518,17 @@ export default function TransactionsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-sm text-muted-foreground whitespace-nowrap">
-                        {txn.account_name}
+                        <div className="flex items-center gap-2">
+                          <span>{txn.account_name}</span>
+                          {txn.account_household_id != null && authUser && txn.user_id != null && txn.user_id !== authUser.id && (
+                            <span
+                              className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20"
+                              title={`Imported by user #${txn.user_id}`}
+                            >
+                              shared
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3.5">
                         {editingCategoryId === txn.id ? (
