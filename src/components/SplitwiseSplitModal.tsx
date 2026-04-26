@@ -167,8 +167,12 @@ export default function SplitwiseSplitModal({
   // Editable expense name — defaults to shared category or descriptions
   const [expenseName, setExpenseName] = useState('')
 
-  // Individual selection — used for friends always, and group members in exact/percent mode
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  // Friend-level individual selection (always)
+  const [selectedFriendIds, setSelectedFriendIds] = useState<Set<number>>(new Set())
+  // Per-group individual member selection — keyed by groupId so the same person
+  // selected in Group A is independent from Group B (or from being a friend)
+  const [selectedGroupMemberIds, setSelectedGroupMemberIds] =
+    useState<Map<number, Set<number>>>(new Map())
   // Group-level selection — only used in equal split mode
   const [selectedGroupIds, setSelectedGroupIds] = useState<Set<number>>(new Set())
 
@@ -195,7 +199,8 @@ export default function SplitwiseSplitModal({
   useEffect(() => {
     if (isOpen) {
       fetchData()
-      setSelectedIds(new Set())
+      setSelectedFriendIds(new Set())
+      setSelectedGroupMemberIds(new Map())
       setSelectedGroupIds(new Set())
       setCustomShares({})
       setFetchError('')
@@ -221,14 +226,26 @@ export default function SplitwiseSplitModal({
 
   const handleSplitTypeChange = (next: SplitType) => {
     setSplitType(next)
-    // Group-level selection doesn't apply to exact/percent — clear it
-    if (next !== 'equal') setSelectedGroupIds(new Set())
+    // Selection model differs across modes — clear the now-irrelevant state
+    if (next !== 'equal') {
+      setSelectedGroupIds(new Set())
+    } else {
+      setSelectedGroupMemberIds(new Map())
+    }
   }
 
-  const toggleParticipant = (id: number) => {
-    const next = new Set(selectedIds)
+  const toggleFriend = (id: number) => {
+    const next = new Set(selectedFriendIds)
     if (next.has(id)) next.delete(id); else next.add(id)
-    setSelectedIds(next)
+    setSelectedFriendIds(next)
+  }
+
+  const toggleGroupMember = (groupId: number, memberId: number) => {
+    const next = new Map(selectedGroupMemberIds)
+    const groupSet = new Set(next.get(groupId) ?? [])
+    if (groupSet.has(memberId)) groupSet.delete(memberId); else groupSet.add(memberId)
+    if (groupSet.size === 0) next.delete(groupId); else next.set(groupId, groupSet)
+    setSelectedGroupMemberIds(next)
   }
 
   const toggleGroup = (groupId: number) => {
@@ -269,9 +286,11 @@ export default function SplitwiseSplitModal({
     g.members.forEach(m => { if (!allParticipantsMap.has(m.id)) allParticipantsMap.set(m.id, m) })
   )
 
-  // Resolve unique participant IDs combining individual + group selections
+  // Resolve unique participant IDs across friend, per-group-member, and
+  // whole-group selections. A user appearing in multiple contexts is deduped.
   const resolvedParticipantIds = (): Set<number> => {
-    const ids = new Set(selectedIds)
+    const ids = new Set<number>(selectedFriendIds)
+    selectedGroupMemberIds.forEach(set => set.forEach(id => ids.add(id)))
     selectedGroupIds.forEach(gid => {
       const g = groups.find(g => g.id === gid)
       g?.members.forEach(m => ids.add(m.id))
@@ -297,15 +316,12 @@ export default function SplitwiseSplitModal({
       // Group-level selection: only meaningful when exactly one group is chosen
       return selectedGroupIds.size === 1 ? [...selectedGroupIds][0] : undefined
     }
-    // Individual member selection: use the group if every selected member
-    // comes from the same single group (and none are pure friends)
-    const involvedGroupIds = new Set<number>()
-    for (const id of selectedIds) {
-      const parentGroup = groups.find(g => g.members.some(m => m.id === id))
-      if (!parentGroup) return undefined   // a pure friend is selected — no group context
-      involvedGroupIds.add(parentGroup.id)
-    }
-    return involvedGroupIds.size === 1 ? [...involvedGroupIds][0] : undefined
+    // Non-equal: any friend selection means there's no group context
+    if (selectedFriendIds.size > 0) return undefined
+    const groupsWithSelections = [...selectedGroupMemberIds.entries()]
+      .filter(([, set]) => set.size > 0)
+      .map(([gid]) => gid)
+    return groupsWithSelections.length === 1 ? groupsWithSelections[0] : undefined
   }
 
   const handleSubmit = async () => {
@@ -339,10 +355,10 @@ export default function SplitwiseSplitModal({
 
   // Badge counts
   const totalResolved = resolvedParticipantIds().size
-  const selectedFriendCount = friends.filter(f => selectedIds.has(f.id)).length
+  const selectedFriendCount = selectedFriendIds.size
   const groupsBadge = splitType === 'equal'
     ? selectedGroupIds.size
-    : groups.reduce((acc, g) => acc + g.members.filter(m => selectedIds.has(m.id)).length, 0)
+    : [...selectedGroupMemberIds.values()].reduce((acc, s) => acc + s.size, 0)
 
   const totalAmount = selectedTransactions.reduce((sum, t) => sum + t.amount, 0)
 
@@ -484,16 +500,18 @@ export default function SplitwiseSplitModal({
                           <GroupMemberInfoRow key={member.id} member={member} />
                         ))
                       ) : (
-                        // Exact / percent: individual selection with amount input
+                        // Exact / percent: individual selection with amount input.
+                        // Selection is per-group context so the same person in
+                        // another group (or in Friends) stays independent.
                         group.members.map((member: SplitwiseGroupMember) => (
                           <ParticipantRow
                             key={member.id}
                             participant={member}
-                            isSelected={selectedIds.has(member.id)}
+                            isSelected={selectedGroupMemberIds.get(group.id)?.has(member.id) ?? false}
                             isFavourite={false}
                             splitType={splitType}
                             customShare={customShares[member.id]}
-                            onToggle={() => toggleParticipant(member.id)}
+                            onToggle={() => toggleGroupMember(group.id, member.id)}
                             onShareChange={(v) => handleShareChange(member.id, v)}
                             onFavToggle={(e) => e.stopPropagation()}
                           />
@@ -521,11 +539,11 @@ export default function SplitwiseSplitModal({
                   <ParticipantRow
                     key={friend.id}
                     participant={friend}
-                    isSelected={selectedIds.has(friend.id)}
+                    isSelected={selectedFriendIds.has(friend.id)}
                     isFavourite={favFriends.has(friend.id)}
                     splitType={splitType}
                     customShare={customShares[friend.id]}
-                    onToggle={() => toggleParticipant(friend.id)}
+                    onToggle={() => toggleFriend(friend.id)}
                     onShareChange={(v) => handleShareChange(friend.id, v)}
                     onFavToggle={(e) => handleFavFriend(e, friend.id)}
                     disabled={groupIsLocked}
